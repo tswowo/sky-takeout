@@ -3,6 +3,7 @@ package com.sky.service.impl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.PasswordConstant;
 import com.sky.constant.StatusConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.EmployeeDTO;
@@ -18,6 +19,7 @@ import com.sky.mapper.EmployeeMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.EmployeeService;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
@@ -79,11 +81,11 @@ public class EmployeeServiceImpl implements EmployeeService {
             employeePageQueryDTO.setPageSize(10);
 
         PageHelper.startPage(employeePageQueryDTO.getPage(),employeePageQueryDTO.getPageSize());
-        Page page = employeeMapper.pageQuery(employeePageQueryDTO.getName());
+        Page<Employee> page = employeeMapper.pageQuery(employeePageQueryDTO.getName());
 
         long total = page.getTotal();
         PageResult pageResult = new PageResult(total,page.getResult());
-        return Result.success(pageResult,"");
+        return Result.success(pageResult);
     }
 
     /**
@@ -116,12 +118,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         Employee employee = new Employee();
-        employee.setUsername(employeeDTO.getUsername());
-        employee.setName(employeeDTO.getName());
-        employee.setPassword(DigestUtils.md5DigestAsHex("123456".getBytes(StandardCharsets.UTF_8)));
-        employee.setPhone(employeeDTO.getPhone());
-        employee.setSex(employeeDTO.getSex());
-        employee.setIdNumber(employeeDTO.getIdNumber());
+        BeanUtils.copyProperties(employeeDTO, employee);
+        employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes(StandardCharsets.UTF_8)));
         employee.setStatus(StatusConstant.ENABLE);
         employee.setCreateUser(BaseContext.getCurrentId());
         employee.setUpdateUser(BaseContext.getCurrentId());
@@ -187,7 +185,7 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new BaseException("员工不存在");
         employee.setStatus(status);
         employeeMapper.updateById(employee);
-        return Result.success("");
+        return Result.success("","");
     }
 
     /**
@@ -199,18 +197,27 @@ public class EmployeeServiceImpl implements EmployeeService {
     public Result<String> updateEmployee(EmployeeDTO employeeDTO) {
         if(employeeDTO.getId()==null)
             throw new BaseException("id不能为空");
+
         Employee employee=employeeMapper.getById(employeeDTO.getId());
         if(employee==null)
             throw new BaseException("员工不存在");
 
-        employee=Employee.builder()
-                .id(employeeDTO.getId())
-                .username(employeeDTO.getUsername())
-                .name(employeeDTO.getName())
-                .phone(employeeDTO.getPhone())
-                .sex(employeeDTO.getSex())
-                .idNumber(employeeDTO.getIdNumber())
-                .build();
+        Employee existEmployee = employeeMapper.getByUsername(employeeDTO.getUsername());
+        if(existEmployee != null && !existEmployee.getId().equals(employeeDTO.getId())){
+            throw new BaseException("用户名已存在");
+        }
+        if (employeeDTO.getPhone().length() != 11 || !employeeDTO.getPhone().matches("\\d+")) {
+            throw new BaseException("手机号格式不正确");
+        }
+        if (employeeDTO.getIdNumber().length() != 15 && employeeDTO.getIdNumber().length() != 18) {
+            throw new BaseException("身份证号格式不正确");
+        }
+        if (employeeDTO.getUsername().isEmpty() || employeeDTO.getUsername().length() > 32) {
+            throw new BaseException("用户名长度必须在32位之内");
+        }
+
+        BeanUtils.copyProperties(employeeDTO,employee);
+        employee.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.updateById(employee);
         return Result.success("");
