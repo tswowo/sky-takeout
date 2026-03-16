@@ -80,11 +80,16 @@ public class CategoryServiceImpl implements CategoryService {
         if(categoryMapper.getByName(category.getName())!=null)
             return Result.error("该分类已存在");
         category.setStatus(StatusConstant.ENABLE);
-        category.setCreateUser(BaseContext.getCurrentId());
         categoryMapper.insert(category);
         return Result.success("","");
     }
 
+    /**
+     * 启用、禁用分类
+     * @param status
+     * @param id
+     * @return Result<String>
+     */
     @Override
     public Result<String> setCategoryStatus(Integer status, Long id) {
         if(status!=0&&status!=1)
@@ -97,6 +102,11 @@ public class CategoryServiceImpl implements CategoryService {
         return Result.success("","");
     }
 
+    /**
+     * 删除分类
+     * @param id
+     * @return Result<String>
+     */
     @Override
     public Result<String> deleteCategory(Long id) {
         Category category = categoryMapper.getById(id);

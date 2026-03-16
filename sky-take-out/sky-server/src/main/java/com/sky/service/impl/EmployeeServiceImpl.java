@@ -121,8 +121,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         BeanUtils.copyProperties(employeeDTO, employee);
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes(StandardCharsets.UTF_8)));
         employee.setStatus(StatusConstant.ENABLE);
-        employee.setCreateUser(BaseContext.getCurrentId());
-        employee.setUpdateUser(BaseContext.getCurrentId());
         try {
             employeeMapper.insert(employee);
         } catch (Exception e) {
@@ -179,6 +177,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new BaseException("状态不能为空");
         if(id==null)
             throw new BaseException("id不能为空");
+        if(id==1)
+            throw new BaseException("超级管理员不能修改");
 
         Employee employee = employeeMapper.getById(id);
         if(employee==null)
@@ -217,7 +217,6 @@ public class EmployeeServiceImpl implements EmployeeService {
         }
 
         BeanUtils.copyProperties(employeeDTO,employee);
-        employee.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.updateById(employee);
         return Result.success("");
