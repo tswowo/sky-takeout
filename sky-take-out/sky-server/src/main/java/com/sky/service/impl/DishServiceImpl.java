@@ -13,6 +13,7 @@ import com.sky.mapper.DishMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.DishService;
+import com.sky.utils.AliOssUtil;
 import com.sky.vo.DishVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 
 @Service
@@ -32,6 +34,8 @@ public class DishServiceImpl implements DishService {
     private DishMapper dishMapper;
     @Autowired
     private DishFlavorMapper dishFlavorMapper;
+    @Autowired
+    private AliOssUtil aliOssUtil;
 
     /**
      * 菜品分页查询
@@ -119,11 +123,16 @@ public class DishServiceImpl implements DishService {
      * @return Result<String>
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> deleteDishById(List<Long> idList) {
         List<Long> failedIds = new ArrayList<>();
 
         for (Long id : idList) {
             try {
+                Dish dish = dishMapper.getDishById(id);
+                if(dish.getImage()!=null&&!dish.getImage().equals("")){
+                    aliOssUtil.deleteImage(dish.getImage());
+                }
                 dishFlavorMapper.deleteByDishId(id);
                 dishMapper.deleteDishById(id);
             } catch (Exception e) {
@@ -169,6 +178,9 @@ public class DishServiceImpl implements DishService {
         Dish dish=dishMapper.getDishById(dishDTO.getId());
         if(dish==null)
             throw new BaseException("菜品不存在");
+        if(dish.getImage()!=null&&!dish.getImage().equals("")&&!Objects.equals(dishDTO.getImage(), dish.getImage())){
+            aliOssUtil.deleteImage(dish.getImage());
+        }
         BeanUtils.copyProperties(dishDTO,dish);
         dishMapper.updateDish(dish);
 
