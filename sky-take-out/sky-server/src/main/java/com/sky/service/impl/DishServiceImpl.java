@@ -10,6 +10,7 @@ import com.sky.entity.DishFlavor;
 import com.sky.exception.BaseException;
 import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
+import com.sky.mapper.SetmealDishMapper;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.DishService;
@@ -34,6 +35,8 @@ public class DishServiceImpl implements DishService {
     private DishMapper dishMapper;
     @Autowired
     private DishFlavorMapper dishFlavorMapper;
+    @Autowired
+    private SetmealDishMapper setmealDishMapper;
     @Autowired
     private AliOssUtil aliOssUtil;
 
@@ -128,6 +131,11 @@ public class DishServiceImpl implements DishService {
         List<Long> failedIds = new ArrayList<>();
 
         for (Long id : idList) {
+            Integer count = setmealDishMapper.getCountByDishId(id);
+            if(count>0){
+                failedIds.add(id);
+                continue;
+            }
             try {
                 Dish dish = dishMapper.getDishById(id);
                 if(dish.getImage()!=null&&!dish.getImage().equals("")){
