@@ -120,7 +120,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO, employee);
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes(StandardCharsets.UTF_8)));
-        employee.setStatus(StatusConstant.ENABLE);
+        employee.setStatus(StatusConstant.DISABLE);
         try {
             employeeMapper.insert(employee);
         } catch (Exception e) {

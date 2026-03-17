@@ -12,3 +12,4 @@
 # 忽略测试相关
 *Test.java
 **/test/
+/sky-take-out/sky-server/src/main/resources/application-oss.yml

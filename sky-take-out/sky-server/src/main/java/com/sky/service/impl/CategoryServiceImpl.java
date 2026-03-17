@@ -59,6 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category =categoryMapper.getById(categoryDTO.getId());
         if(category==null)
             return Result.error("分类不存在");
+        categoryDTO.setType(category.getType());
         BeanUtils.copyProperties(categoryDTO,category);
         categoryMapper.update(category);
         return Result.success("","");
@@ -79,7 +80,7 @@ public class CategoryServiceImpl implements CategoryService {
             return Result.error("分类名称长度必须在32位之内");
         if(categoryMapper.getByName(category.getName())!=null)
             return Result.error("该分类已存在");
-        category.setStatus(StatusConstant.ENABLE);
+        category.setStatus(StatusConstant.DISABLE);
         categoryMapper.insert(category);
         return Result.success("","");
     }
