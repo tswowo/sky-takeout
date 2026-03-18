@@ -2,6 +2,7 @@ package com.sky.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.sky.constant.MessageConstant;
 import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -77,16 +79,30 @@ public class SetmealServiceImpl implements SetmealService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<String> deleteSetmeal(List<Long> ids) {
-        if(ids==null||ids.size()==0)
+        if(ids==null|| ids.isEmpty())
             return Result.error("参数错误");
-        setmealDishMapper.deleteBySetmealIds(ids);
+        //统计有效的可删除的套餐
+        List<Long> validIds=new ArrayList<>();
+        ids.forEach(id -> {
+            SetmealVO setmealVO=setmealMapper.getById(id);
+            if(setmealVO==null)
+                throw new BaseException("套餐不存在");
+            if(setmealVO.getStatus()==1)
+                throw new BaseException(MessageConstant.SETMEAL_ON_SALE);
+            validIds.add(id);
+        });
+        //删除套餐关联的菜品
+        setmealDishMapper.deleteBySetmealIds(validIds);
 
-        List<String> ImageFile=setmealMapper.getImageFileByIds(ids);
+        //删除OSS上的图片
+        List<String> ImageFile=setmealMapper.getImageFileByIds(validIds);
         ImageFile.forEach(fileName -> {
             if(fileName!=null)
                 aliOssUtil.deleteImage(fileName);
         });
-        setmealMapper.deleteSetmeal(ids);
+
+        //删除套餐
+        setmealMapper.deleteSetmeal(validIds);
         return Result.success("", "");
     }
 
@@ -140,6 +156,12 @@ public class SetmealServiceImpl implements SetmealService {
         SetmealVO setmealVO=setmealMapper.getById(id);
         if(setmealVO==null)
             throw new BaseException("套餐不存在");
+        //修改为启售时 查询是否有未起售菜品
+        if(status==1){
+            Integer countDisabledDish=setmealDishMapper.getCountDisableDishByDishId(id);
+            if(countDisabledDish>0)//存在未启售菜品则不能启售
+                throw new BaseException(MessageConstant.SETMEAL_ENABLE_FAILED);
+        }
         Setmeal setmeal=new Setmeal();
         BeanUtils.copyProperties(setmealVO,setmeal);
         setmeal.setStatus(status);

@@ -25,6 +25,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 
 @Service
 public class EmployeeServiceImpl implements EmployeeService {
@@ -48,7 +49,7 @@ public class EmployeeServiceImpl implements EmployeeService {
         //2、处理各种异常情况（用户名不存在、密码不对、账号被锁定）
         if (employee == null) {
             //账号不存在
-            throw new AccountNotFoundException(MessageConstant.ACCOUNT_NOT_FOUND);
+            throw new AccountNotFoundException(MessageConstant.LOGIN_FAILED+MessageConstant.ACCOUNT_NOT_FOUND);
         }
 
         //密码比对
@@ -56,12 +57,12 @@ public class EmployeeServiceImpl implements EmployeeService {
         //进行md5加密，然后再进行比对
         if (!md5Password.equals(employee.getPassword())) {
             //密码错误
-            throw new PasswordErrorException(MessageConstant.PASSWORD_ERROR);
+            throw new PasswordErrorException(MessageConstant.LOGIN_FAILED+MessageConstant.PASSWORD_ERROR);
         }
 
-        if (employee.getStatus() == StatusConstant.DISABLE) {
+        if (Objects.equals(employee.getStatus(), StatusConstant.DISABLE)) {
             //账号被锁定
-            throw new AccountLockedException(MessageConstant.ACCOUNT_LOCKED);
+            throw new AccountLockedException(MessageConstant.LOGIN_FAILED+MessageConstant.ACCOUNT_LOCKED);
         }
 
         //3、返回实体对象
@@ -153,11 +154,11 @@ public class EmployeeServiceImpl implements EmployeeService {
     public Result<String> editPassword(PasswordEditDTO passwordEditDTO){
         Employee employee = employeeMapper.getById(BaseContext.getCurrentId());
         if(employee==null)
-            throw new BaseException("员工不存在");
+            throw new BaseException(MessageConstant.PASSWORD_EDIT_FAILED+"员工不存在");
         if(!employee.getPassword().equals(DigestUtils.md5DigestAsHex(passwordEditDTO.getOldPassword().getBytes(StandardCharsets.UTF_8))))
-            throw new BaseException("旧密码错误");
+            throw new BaseException(MessageConstant.PASSWORD_EDIT_FAILED+"旧密码错误");
         if(passwordEditDTO.getNewPassword().length()<6)
-            throw new BaseException("新密码不能小于6位");
+            throw new BaseException(MessageConstant.PASSWORD_EDIT_FAILED+"新密码不能小于6位");
 
         employee.setId(BaseContext.getCurrentId());
         employee.setPassword(DigestUtils.md5DigestAsHex(passwordEditDTO.getNewPassword().getBytes(StandardCharsets.UTF_8)));
@@ -179,6 +180,8 @@ public class EmployeeServiceImpl implements EmployeeService {
             throw new BaseException("id不能为空");
         if(id==1)
             throw new BaseException("超级管理员不能修改");
+        if(id.equals(BaseContext.getCurrentId()))
+            throw new BaseException("不能修改自己的状态");
 
         Employee employee = employeeMapper.getById(id);
         if(employee==null)

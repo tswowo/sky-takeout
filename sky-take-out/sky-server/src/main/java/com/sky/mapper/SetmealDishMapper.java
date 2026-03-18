@@ -18,4 +18,8 @@ public interface SetmealDishMapper {
     Integer getCountByDishId(Long id);
 
     void deleteBySetmealId(Long id);
+
+    Integer getCountDisableDishByDishId(Long setmealId);
+
+    void disableSetmealByDishId(Long id);
 }

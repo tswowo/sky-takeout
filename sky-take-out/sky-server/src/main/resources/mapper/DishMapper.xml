@@ -74,5 +74,13 @@
         FROM dish
         WHERE id = #{id}
     </select>
+    <!--统计菜品是否在启售的套餐中-->
+    <select id="getCountDishByDishIdInSetmeal" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM setmeal_dish
+                 INNER JOIN setmeal
+                            ON setmeal_dish.setmeal_id = setmeal.id
+        WHERE setmeal_dish.dish_id = #{id}
+    </select>
 
 </mapper>

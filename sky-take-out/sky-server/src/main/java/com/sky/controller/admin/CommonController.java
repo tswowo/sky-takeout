@@ -1,5 +1,6 @@
 package com.sky.controller.admin;
 
+import com.sky.constant.MessageConstant;
 import com.sky.exception.BaseException;
 import com.sky.result.Result;
 import com.sky.utils.AliOssUtil;
@@ -23,9 +24,9 @@ public class CommonController {
     private AliOssUtil aliOssUtil;
 
     @PostMapping("/upload")
-    public Result<String> upload(@RequestBody MultipartFile file){
+    public Result<String> upload(@RequestBody MultipartFile file) {
         log.info("文件上传:{}", file);
-        try{
+        try {
             // 1. 获取文件字节数组
             byte[] bytes = file.getBytes();
 
@@ -39,9 +40,9 @@ public class CommonController {
             String fileUrl = aliOssUtil.upload(bytes, objectName);
 
             // 4. 返回上传成功的URL
-            return Result.success(fileUrl,"");
-        }catch (Exception e){
-            throw new BaseException("图片上传失败:"+e.getMessage());
+            return Result.success(fileUrl, "");
+        } catch (Exception e) {
+            throw new BaseException(MessageConstant.UPLOAD_FAILED + e.getMessage());
         }
     }
 }

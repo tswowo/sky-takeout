@@ -2,6 +2,7 @@ package com.sky.service.impl;
 
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
@@ -128,33 +129,30 @@ public class DishServiceImpl implements DishService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<String> deleteDishById(List<Long> idList) {
-        List<Long> failedIds = new ArrayList<>();
-
+        // 先校验所有菜品
         for (Long id : idList) {
-            Integer count = setmealDishMapper.getCountByDishId(id);
-            if(count>0){
-                failedIds.add(id);
-                continue;
-            }
-            try {
-                Dish dish = dishMapper.getDishById(id);
-                if(dish.getImage()!=null&&!dish.getImage().equals("")){
-                    aliOssUtil.deleteImage(dish.getImage());
-                }
-                dishFlavorMapper.deleteByDishId(id);
-                dishMapper.deleteDishById(id);
-            } catch (Exception e) {
-                log.error("删除菜品失败，id={}", id, e);
-                failedIds.add(id);
-            }
+            Dish dish = dishMapper.getDishById(id);
+            if (dish == null)
+                throw new BaseException("菜品不存在");
+            if (dish.getStatus() == 1)
+                throw new BaseException(MessageConstant.DISH_ON_SALE);
+            if (dishMapper.getCountDishByDishIdInSetmeal(id) > 0)
+                throw new BaseException(MessageConstant.DISH_BE_RELATED_BY_SETMEAL);
         }
 
-        if (!failedIds.isEmpty()) {
-            throw new BaseException("删除失败，共" + failedIds.size() + "条记录删除失败，失败的 ID: " + failedIds);
+        // 校验通过后统一删除
+        for (Long id : idList) {
+            Dish dish = dishMapper.getDishById(id);
+            if (dish.getImage() != null && !dish.getImage().equals("")) {
+                aliOssUtil.deleteImage(dish.getImage());
+            }
+            dishFlavorMapper.deleteByDishId(id);
+            dishMapper.deleteDishById(id);
         }
 
         return Result.success("", "");
     }
+
 
     /**
      * 修改菜品起售、停售状态
@@ -164,35 +162,47 @@ public class DishServiceImpl implements DishService {
      * @return Result<String>
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Result<String> updateDishStatus(Integer status, Long id) {
         if (status != 0 && status != 1)
             throw new BaseException("菜品状态参数错误");
+
         Dish dish = dishMapper.getDishById(id);
         if (dish == null)
             throw new BaseException("菜品不存在");
+
+        // 如果是禁用操作
+        if (status == 0) {
+            // 先禁用引用该菜品的套餐
+            setmealDishMapper.disableSetmealByDishId(id);
+        }
+
         dish.setStatus(status);
         dishMapper.updateDishStatus(dish);
+
         return Result.success("", "");
     }
 
+
     /**
      * 修改菜品
+     *
      * @param dishDTO
      * @return Result<String>
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Result<String> updateDish(DishDTO dishDTO) {
-        Dish dish=dishMapper.getDishById(dishDTO.getId());
-        if(dish==null)
+        Dish dish = dishMapper.getDishById(dishDTO.getId());
+        if (dish == null)
             throw new BaseException("菜品不存在");
-        if(dish.getImage()!=null&&!dish.getImage().equals("")&&!Objects.equals(dishDTO.getImage(), dish.getImage())){
+        if (dish.getImage() != null && !dish.getImage().equals("") && !Objects.equals(dishDTO.getImage(), dish.getImage())) {
             aliOssUtil.deleteImage(dish.getImage());
         }
-        BeanUtils.copyProperties(dishDTO,dish);
+        BeanUtils.copyProperties(dishDTO, dish);
         dishMapper.updateDish(dish);
 
-        if(dishDTO.getFlavors()!=null) {
+        if (dishDTO.getFlavors() != null) {
             dishFlavorMapper.deleteByDishId(dishDTO.getId());
             for (DishFlavor flavor : dishDTO.getFlavors()) {
                 flavor.setDishId(dish.getId());

@@ -7,6 +7,7 @@ import com.sky.entity.Setmeal;
 import com.sky.enumeration.OperationType;
 import com.sky.vo.SetmealVO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -28,4 +29,17 @@ public interface SetmealMapper {
     void update(Setmeal setmeal);
 
     void updateStatus(Setmeal setmeal);
+
+    @Update("UPDATE setmeal SET status = 0 WHERE category_id = #{categoryId}")
+    void disableByCategoryId(Long categoryId);
+
+    @Update("<script>" +
+            "UPDATE setmeal SET status = 0 WHERE id IN (" +
+            "SELECT DISTINCT setmeal_id FROM setmeal_dish WHERE dish_id IN " +
+            "<foreach item='id' collection='dishIds' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach>)" +
+            "</script>")
+    void disableByDishIds(List<Long> dishIds);
+
 }
