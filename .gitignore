@@ -14,3 +14,4 @@
 **/test/
 /sky-take-out/sky-server/src/main/resources/application-oss.yml
 /sky-take-out/sky-server/src/main/resources/application-dev.yml
+/sky-take-out/sky-server/src/main/resources/application-redis.yml
