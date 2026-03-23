@@ -14,10 +14,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RestController
+@RestController("adminSetmealController")
 @RequestMapping("/admin/setmeal")
 @Slf4j
-@Api(tags = "套餐相关接口")
+@Api(tags = "管理端套餐相关接口")
 public class SetmealController {
     @Autowired
     private SetmealService setmealService;

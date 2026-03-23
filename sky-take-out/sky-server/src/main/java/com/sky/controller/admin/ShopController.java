@@ -10,9 +10,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-@RestController
+@RestController("adminShopController")
 @RequestMapping("/admin/shop")
-@Api(tags = "店铺相关接口")
+@Api(tags = "管理端店铺相关接口")
 @Slf4j
 public class ShopController {
     @Autowired

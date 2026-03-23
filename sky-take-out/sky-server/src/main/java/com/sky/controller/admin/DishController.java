@@ -17,10 +17,10 @@ import java.util.List;
 /**
  * 菜品管理
  */
-@RestController
+@RestController("adminDishController")
 @RequestMapping("/admin/dish")
 @Slf4j
-@Api(tags = "菜品管理系统")
+@Api(tags = "管理端菜品管理系统")
 public class DishController {
     @Autowired
     private DishService dishService;
