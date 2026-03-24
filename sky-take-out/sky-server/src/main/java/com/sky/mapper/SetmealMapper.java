@@ -5,6 +5,7 @@ import com.sky.annotation.AutoFill;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.entity.Setmeal;
 import com.sky.enumeration.OperationType;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Update;
@@ -42,4 +43,7 @@ public interface SetmealMapper {
             "</script>")
     void disableByDishIds(List<Long> dishIds);
 
+    List<SetmealVO> listByCategoryId(Long categoryId);
+
+    List<DishItemVO> getDishBySetmealId(Long id);
 }

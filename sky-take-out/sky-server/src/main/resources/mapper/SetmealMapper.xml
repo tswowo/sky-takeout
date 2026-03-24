@@ -21,6 +21,7 @@
             <result property="copies" column="sd_copies"/>
         </collection>
     </resultMap>
+
     <!--修改套餐-->
     <update id="update">
         UPDATE setmeal
@@ -31,7 +32,7 @@
         image=#{image},
         update_time=NOW(),
         update_user=#{updateUser}
-        <if  test="status!=null">
+        <if test="status!=null">
             ,status= #{status}
         </if>
         <if test="description!=null">
@@ -42,11 +43,10 @@
     <!--套餐起售、停售-->
     <update id="updateStatus">
         UPDATE setmeal
-        SET
-        status=#{status},
-        update_user=#{updateUser},
-        update_time=NOW()
-        WHERE id=#{id}
+        SET status=#{status},
+            update_user=#{updateUser},
+            update_time=NOW()
+        WHERE id = #{id}
     </update>
     <!--批量删除套餐-->
     <delete id="deleteSetmeal">
@@ -59,7 +59,7 @@
     <select id="page" resultType="com.sky.vo.SetmealVO">
         SELECT s.id,s.category_id,s.name,s.price,s.status,s.description,s.image,s.update_time,c.name AS category_name
         FROM setmeal AS s
-            LEFT JOIN category AS c ON s.category_id=c.id
+        LEFT JOIN category AS c ON s.category_id=c.id
         <where>
             <if test="categoryId!=null">
                 category_id=#{categoryId}
@@ -91,22 +91,46 @@
                s.description,
                s.image,
                s.update_time,
-               c.name AS category_name,
-               sd.id AS sd_id,
+               c.name        AS category_name,
+               sd.id         AS sd_id,
                sd.setmeal_id AS sd_setmeal_id,
-               sd.dish_id AS sd_dish_id,
-               sd.name AS sd_name,
-               sd.price AS sd_price,
-               sd.copies AS sd_copies
+               sd.dish_id    AS sd_dish_id,
+               sd.name       AS sd_name,
+               sd.price      AS sd_price,
+               sd.copies     AS sd_copies
         FROM setmeal AS s
                  LEFT JOIN category AS c ON s.category_id = c.id
                  LEFT JOIN setmeal_dish AS sd ON s.id = sd.setmeal_id
         WHERE s.id = #{id}
     </select>
+    <!--查询catrgoryId分类下的套餐-->
+    <select id="listByCategoryId" resultType="com.sky.vo.SetmealVO">
+        SELECT category_id,
+               create_time,
+               create_user,
+               description,
+               id,
+               image,
+               name,
+               price,
+               status,
+               update_time,
+               update_user
+        FROM setmeal
+        WHERE cotegory_id = #{categoryId}
+    </select>
+    <!--查询套餐下的菜品-->
+    <select id="getDishBySetmealId" resultType="com.sky.vo.DishItemVO">
+        SELECT sd.copies, d.name, d.description, d.image
+        FROM setmeal_dish AS sd
+                 LEFT JOIN dish AS d ON sd.dish_id = d.id
+    </select>
     <!--插入套餐-->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO setmeal (category_id,name,price,status,description,image,create_time,update_time,create_user,update_user)
-        VALUES (#{categoryId},#{name},#{price},#{status},#{description},#{image},NOW(),NOW(),#{createUser},#{updateUser})
+        INSERT INTO setmeal (category_id, name, price, status, description, image, create_time, update_time,
+                             create_user, update_user)
+        VALUES (#{categoryId}, #{name}, #{price}, #{status}, #{description}, #{image}, NOW(), NOW(), #{createUser},
+                #{updateUser})
     </insert>
 
 </mapper>

@@ -4,6 +4,7 @@ import com.sky.dto.SetmealDTO;
 import com.sky.dto.SetmealPageQueryDTO;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 
 import java.util.List;
@@ -21,4 +22,8 @@ public interface SetmealService {
     Result<String> update(SetmealDTO setmealDTO);
 
     Result<String> updateStatus(Integer status, Long id);
+
+    Result<List<SetmealVO>> listByCategoryId(Long categoryId);
+
+    Result<List<DishItemVO>> getDishBySetmealId(Long id);
 }

@@ -14,6 +14,7 @@ import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.SetmealService;
 import com.sky.utils.AliOssUtil;
+import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -151,6 +152,12 @@ public class SetmealServiceImpl implements SetmealService {
         return Result.success("", "");
     }
 
+    /**
+     * 修改套餐状态
+     * @param status
+     * @param id
+     * @return Result<String>
+     */
     @Override
     public Result<String> updateStatus(Integer status, Long id) {
         SetmealVO setmealVO=setmealMapper.getById(id);
@@ -168,4 +175,28 @@ public class SetmealServiceImpl implements SetmealService {
         setmealMapper.updateStatus(setmeal);
         return Result.success("", "");
     }
+
+    /**
+     * 根据分类id查询套餐基本信息
+     * @param categoryId
+     * @return
+     */
+    @Override
+    public Result<List<SetmealVO>> listByCategoryId(Long categoryId) {
+        List<SetmealVO> setmealVOList=setmealMapper.listByCategoryId(categoryId);
+        return Result.success(setmealVOList);
+    }
+
+    /**
+     * 根据套餐id查询包含的菜品
+     * @param id
+     * @return Result<List<DishItemVO>>
+     */
+    @Override
+    public Result<List<DishItemVO>> getDishBySetmealId(Long id) {
+        List<DishItemVO> dishItemVOList=setmealMapper.getDishBySetmealId(id);
+        return Result.success(dishItemVOList);
+    }
+
+
 }
