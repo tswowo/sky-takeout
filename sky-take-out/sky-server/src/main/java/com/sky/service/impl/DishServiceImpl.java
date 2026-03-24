@@ -3,7 +3,6 @@ package com.sky.service.impl;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
-import com.sky.context.BaseContext;
 import com.sky.dto.DishDTO;
 import com.sky.dto.DishPageQueryDTO;
 import com.sky.entity.Dish;
@@ -23,7 +22,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -68,7 +66,7 @@ public class DishServiceImpl implements DishService {
      * @return
      */
     @Override
-    public Result<List<DishVO>> listDish(Integer categoryId) {
+    public Result<List<DishVO>> listDish(Long categoryId) {
         if (categoryId < 0)
             return Result.error("分类id参数错误");
         return Result.success(dishMapper.listDish(categoryId), "");
@@ -212,4 +210,15 @@ public class DishServiceImpl implements DishService {
         return Result.success("", "");
     }
 
+    /**
+     * 根据分类id查询菜品详细信息列表
+     *
+     * @param categoryId
+     * @return Result<List<DishVO>>
+     */
+    @Override
+    public Result<List<DishVO>> listDishByCategoryId(Long categoryId) {
+        List<DishVO> dishVOList = dishMapper.listDishWithFlavors(categoryId);
+        return Result.success(dishVOList);
+    }
 }

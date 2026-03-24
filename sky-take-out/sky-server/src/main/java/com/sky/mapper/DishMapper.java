@@ -16,7 +16,7 @@ import java.util.List;
 public interface DishMapper {
     Page<DishVO> pageQuery(DishPageQueryDTO dishPageQueryDTO);
 
-    List<DishVO> listDish(Integer categoryId);
+    List<DishVO> listDish(Long categoryId);
 
     DishVO getDishVOById(Long id);
 
@@ -40,5 +40,7 @@ public interface DishMapper {
 
     @Select("SELECT id FROM dish WHERE category_id = #{categoryId}")
     List<Long> getIdsByCategoryId(Long categoryId);
+
+    List<DishVO> listDishWithFlavors(Long categoryId);
 
 }
