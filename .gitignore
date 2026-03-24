@@ -9,6 +9,9 @@
 **/target/
 *.class
 
+# 忽略 node_modules
+/xiaochengxv/node-modules
+
 # 忽略测试相关
 *Test.java
 **/test/
