@@ -56,7 +56,7 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public Result<List<Category>> listCategory(Integer type) {
-        if (type != 1 && type != 2)
+        if (type != null && type != 1 && type != 2)
             return Result.error("类型查询参数错误");
         return Result.success(categoryMapper.listCategory(type), "");
     }
