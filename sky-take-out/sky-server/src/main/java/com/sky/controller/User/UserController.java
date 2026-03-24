@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestController
+@RestController("userUserController")
 @RequestMapping("/user/user")
-@Api(tags = "客户端用户相关接口")
+@Api(tags = "C端-用户接口")
 @Slf4j
 public class UserController {
 
@@ -52,6 +52,7 @@ public class UserController {
                 .openid(user.getOpenid())
                 .token(token)
                 .build();
+        log.info("生成jwt令牌：{}", token);
         return Result.success(userLoginVO);
     }
 }
