@@ -117,7 +117,7 @@
                update_time,
                update_user
         FROM setmeal
-        WHERE cotegory_id = #{categoryId}
+        WHERE category_id = #{categoryId}
     </select>
     <!--查询套餐下的菜品-->
     <select id="getDishBySetmealId" resultType="com.sky.vo.DishItemVO">
