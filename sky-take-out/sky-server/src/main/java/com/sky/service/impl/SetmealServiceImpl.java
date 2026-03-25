@@ -19,6 +19,8 @@ import com.sky.vo.DishItemVO;
 import com.sky.vo.SetmealVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -63,7 +65,7 @@ public class SetmealServiceImpl implements SetmealService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "setmeal_*")
+    @CacheEvict(cacheNames = "setmealCache", key="#setmealDTO.categoryId")
     public Result<String> save(SetmealDTO setmealDTO) {
         Setmeal setmeal = new Setmeal();
 
@@ -87,7 +89,7 @@ public class SetmealServiceImpl implements SetmealService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "setmeal_*")
+    @CacheEvict(cacheNames = "setmealCache", allEntries = true)
     public Result<String> deleteSetmeal(List<Long> ids) {
         if (ids == null || ids.isEmpty())
             return Result.error("参数错误");
@@ -136,7 +138,7 @@ public class SetmealServiceImpl implements SetmealService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "setmeal_*")
+    @CacheEvict(cacheNames = "setmealCache", allEntries = true)
     public Result<String> update(SetmealDTO setmealDTO) {
         SetmealVO setmealVO = setmealMapper.getById(setmealDTO.getId());
         if (setmealVO == null)
@@ -173,7 +175,7 @@ public class SetmealServiceImpl implements SetmealService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "setmeal_*")
+    @CacheEvict(cacheNames = "setmealCache", allEntries = true)
     public Result<String> updateStatus(Integer status, Long id) {
         SetmealVO setmealVO = setmealMapper.getById(id);
         if (setmealVO == null)
@@ -198,18 +200,9 @@ public class SetmealServiceImpl implements SetmealService {
      * @return
      */
     @Override
+    @Cacheable(cacheNames = "setmealCache", key = "#categoryId")
     public Result<List<SetmealVO>> listByCategoryId(Long categoryId) {
-
-        //构造redisKey
-        String key = "setmeal_" + categoryId;
-        List<SetmealVO> setmealVOList = (List<SetmealVO>) redisTemplate.opsForValue().get(key);
-        if (setmealVOList != null && !setmealVOList.isEmpty()) {
-            //若redis缓存命中，返回即可
-            return Result.success(setmealVOList);
-        }
-        //如果未命中，查数据库，存到redis中
-        setmealVOList = setmealMapper.listByCategoryId(categoryId);
-        redisTemplate.opsForValue().set(key, setmealVOList);
+        List<SetmealVO> setmealVOList = setmealMapper.listByCategoryId(categoryId);
 
         return Result.success(setmealVOList);
     }

@@ -118,6 +118,7 @@
                update_user
         FROM setmeal
         WHERE category_id = #{categoryId}
+          AND status = 1
     </select>
     <!--查询套餐下的菜品-->
     <select id="getDishBySetmealId" resultType="com.sky.vo.DishItemVO">

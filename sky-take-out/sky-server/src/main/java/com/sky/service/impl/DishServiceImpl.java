@@ -22,6 +22,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -100,7 +102,7 @@ public class DishServiceImpl implements DishService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "dish_*")
+    @CacheEvict(cacheNames = "dishCache", key = "#dishDTO.categoryId")
     public Result<String> saveDish(DishDTO dishDTO) {
         if (dishDTO.getCategoryId() == null)
             throw new BaseException("菜品分类id参数错误");
@@ -133,7 +135,7 @@ public class DishServiceImpl implements DishService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "dish_*")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result<String> deleteDishById(List<Long> idList) {
         // 先校验所有菜品
         for (Long id : idList) {
@@ -169,7 +171,7 @@ public class DishServiceImpl implements DishService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "dish_*")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result<String> updateDishStatus(Integer status, Long id) {
         if (status != 0 && status != 1)
             throw new BaseException("菜品状态参数错误");
@@ -199,7 +201,7 @@ public class DishServiceImpl implements DishService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @ClearCache(prefix = "dish_*")
+    @CacheEvict(cacheNames = "dishCache", allEntries = true)
     public Result<String> updateDish(DishDTO dishDTO) {
         //校验菜品
         Dish dish = dishMapper.getDishById(dishDTO.getId());
@@ -231,19 +233,11 @@ public class DishServiceImpl implements DishService {
      * @return Result<List<DishVO>>
      */
     @Override
+    @Cacheable(cacheNames = "dishCache", key = "#categoryId")
     public Result<List<DishVO>> listDishByCategoryId(Long categoryId) {
         if (categoryId == null || categoryId < 0)
             throw new BaseException("分类id参数错误");
-        //构造redisKey
-        String key = "dish_" + categoryId;
-        List<DishVO> dishVOList = (List<DishVO>) redisTemplate.opsForValue().get(key);
-        if (dishVOList != null && !dishVOList.isEmpty()) {
-            //若redis缓存命中，返回即可
-            return Result.success(dishVOList);
-        }
-        //如果未命中，查数据库，存到redis中
-        dishVOList = dishMapper.listDishWithFlavors(categoryId);
-        redisTemplate.opsForValue().set(key, dishVOList);
+        List<DishVO> dishVOList = dishMapper.listDishWithFlavors(categoryId);
 
         return Result.success(dishVOList);
     }
