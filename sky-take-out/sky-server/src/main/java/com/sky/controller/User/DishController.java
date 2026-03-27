@@ -3,6 +3,7 @@ package com.sky.controller.User;
 import com.sky.result.Result;
 import com.sky.service.DishService;
 import com.sky.vo.DishVO;
+import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +17,7 @@ import java.util.List;
 @RestController("userDishController")
 @RequestMapping("/user/dish")
 @Slf4j
-@ApiOperation("C端-菜品浏览接口")
+@Api(tags = "C端-菜品浏览接口")
 public class DishController {
     @Autowired
     private DishService dishService;
