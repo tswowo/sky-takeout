@@ -5,8 +5,8 @@
 
     <!--插入套餐菜品-->
     <insert id="insert">
-        INSERT INTO setmeal_dish (setmeal_id, dish_id, name, price, copies) VALUES
-        (#{setmealId}, #{dishId}, #{name}, #{price}, #{copies})
+        INSERT INTO setmeal_dish (setmeal_id, dish_id, name, price, copies)
+        VALUES (#{setmealId}, #{dishId}, #{name}, #{price}, #{copies})
     </insert>
     <!--批量删除套餐对应的菜品-->
     <delete id="deleteBySetmealIds">
@@ -33,19 +33,18 @@
     <select id="getCountDisableDishByDishId" resultType="java.lang.Integer">
         SELECT COUNT(*)
         FROM setmeal_dish sd
-        LEFT JOIN dish d ON sd.dish_id = d.id
+                 LEFT JOIN dish d ON sd.dish_id = d.id
         WHERE sd.setmeal_id = #{setmealId}
-        AND d.status = 0
+          AND d.status = 0
     </select>
     <!--禁用菜品关联的套餐-->
     <update id="disableSetmealByDishId">
         UPDATE setmeal
         SET status = 0
-        WHERE id IN (
-            SELECT DISTINCT setmeal_id
-            FROM setmeal_dish
-            WHERE dish_id = #{dishId}
-        )
+        WHERE id IN (SELECT *
+                     FROM (SELECT DISTINCT setmeal_id
+                           FROM setmeal_dish
+                           WHERE dish_id = #{dishId}) AS temp)
     </update>
 
 </mapper>
