@@ -1,5 +1,7 @@
 package com.sky.entity;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -14,6 +16,7 @@ import java.io.Serializable;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ApiModel("地址簿")
 public class AddressBook implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -27,9 +30,11 @@ public class AddressBook implements Serializable {
     private String consignee;
 
     //手机号
+    @ApiModelProperty(value = "手机号", required = true)
     private String phone;
 
     //性别 0 女 1 男
+    @ApiModelProperty(value = "性别", required = true)
     private String sex;
 
     //省级区划编号
@@ -51,6 +56,7 @@ public class AddressBook implements Serializable {
     private String districtName;
 
     //详细地址
+    @ApiModelProperty(value = "详细地址", required = true)
     private String detail;
 
     //标签
