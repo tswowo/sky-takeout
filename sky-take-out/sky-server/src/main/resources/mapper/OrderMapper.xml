@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.sky.mapper.OrderMapper">
+
+    <resultMap id="OrderVOMap" type="com.sky.vo.OrderVO">
+        <id property="id" column="id"/>
+        <result property="number" column="number"/>
+        <result property="status" column="status"/>
+        <result property="userId" column="user_id"/>
+        <result property="addressBookId" column="address_book_id"/>
+        <result property="orderTime" column="order_time"/>
+        <result property="checkoutTime" column="checkout_time"/>
+        <result property="payMethod" column="pay_method"/>
+        <result property="payStatus" column="pay_status"/>
+        <result property="amount" column="amount"/>
+        <result property="remark" column="remark"/>
+        <result property="userName" column="user_name"/>
+        <result property="phone" column="phone"/>
+        <result property="address" column="address"/>
+        <result property="consignee" column="consignee"/>
+        <result property="cancelReason" column="cancel_reason"/>
+        <result property="rejectionReason" column="rejection_reason"/>
+        <result property="cancelTime" column="cancel_time"/>
+        <result property="estimatedDeliveryTime" column="estimated_delivery_time"/>
+        <result property="deliveryStatus" column="delivery_status"/>
+        <result property="deliveryTime" column="delivery_time"/>
+        <result property="packAmount" column="pack_amount"/>
+        <result property="tablewareNumber" column="tableware_number"/>
+        <result property="tablewareStatus" column="tableware_status"/>
+        <collection property="orderDetailList" ofType="com.sky.entity.OrderDetail">
+            <id property="id" column="od_id"/>
+            <result property="name" column="od_name"/>
+            <result property="setmealId" column="od_setmeal_id"/>
+            <result property="dishId" column="od_dish_id"/>
+            <result property="dishFlavor" column="od_dish_flavor"/>
+            <result property="number" column="od_number"/>
+            <result property="amount" column="od_amount"/>
+            <result property="image" column="od_image"/>
+            <result property="orderId" column="od_order_id"/>
+        </collection>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+        INSERT INTO orders
+        (number,
+         status,
+         user_id,
+         address_book_id,
+         order_time,
+         checkout_time,
+         pay_method,
+         pay_status,
+         amount,
+         remark,
+         user_name,
+         phone,
+         address,
+         consignee,
+         cancel_reason,
+         rejection_reason,
+         cancel_time,
+         estimated_delivery_time,
+         delivery_status,
+         delivery_time,
+         pack_amount,
+         tableware_number,
+         tableware_status)
+        VALUES (#{number},
+                #{status},
+                #{userId},
+                #{addressBookId},
+                #{orderTime},
+                #{checkoutTime},
+                #{payMethod},
+                #{payStatus},
+                #{amount},
+                #{remark},
+                #{userName},
+                #{phone},
+                #{address},
+                #{consignee},
+                #{cancelReason},
+                #{rejectionReason},
+                #{cancelTime},
+                #{estimatedDeliveryTime},
+                #{deliveryStatus},
+                #{deliveryTime},
+                #{packAmount},
+                #{tablewareNumber},
+                #{tablewareStatus})
+    </insert>
+    <select id="pageQuery" resultMap="OrderVOMap">
+        SELECT o.id,
+        o.number,
+        o.status,
+        o.user_id,
+        o.address_book_id,
+        o.order_time,
+        o.checkout_time,
+        o.pay_method,
+        o.pay_status,
+        o.amount,
+        o.remark,
+        o.user_name,
+        o.phone,
+        o.address,
+        o.consignee,
+        o.cancel_reason,
+        o.rejection_reason,
+        o.cancel_time,
+        o.estimated_delivery_time,
+        o.delivery_status,
+        o.delivery_time,
+        o.pack_amount,
+        o.tableware_number,
+        o.tableware_status,
+        od.id AS od_id,
+        od.name AS od_name,
+        od.setmeal_id AS od_setmeal_id,
+        od.dish_id AS od_dish_id,
+        od.dish_flavor AS od_dish_flavor,
+        od.number AS od_number,
+        od.amount AS od_amount,
+        od.image AS od_image,
+        od.order_id AS od_order_id
+        FROM orders AS o
+        LEFT JOIN order_detail AS od ON o.id = od.order_id
+        <where>
+            o.user_id = #{userId}
+            <if test="status != null and status != ''">
+                AND o.status = #{status}
+            </if>
+            <if test="beginTime != null">
+                AND o.order_time >= #{beginTime}
+            </if>
+            <if test="endTime != null">
+                AND #{endTime} >= o.order_time
+            </if>
+            <if test="number != null">
+                AND o.number LIKE CONCAT('%',#{number},'%')
+            </if>
+            <if test="phone != null">
+                AND o.phone LIKE CONCAT('%',#{phone},'%')
+            </if>
+        </where>
+    </select>
+    <select id="orderDetail" resultMap="OrderVOMap">
+        SELECT o.id,
+               o.number,
+               o.status,
+               o.user_id,
+               o.address_book_id,
+               o.order_time,
+               o.checkout_time,
+               o.pay_method,
+               o.pay_status,
+               o.amount,
+               o.remark,
+               o.user_name,
+               o.phone,
+               o.address,
+               o.consignee,
+               o.cancel_reason,
+               o.rejection_reason,
+               o.cancel_time,
+               o.estimated_delivery_time,
+               o.delivery_status,
+               o.delivery_time,
+               o.pack_amount,
+               o.tableware_number,
+               o.tableware_status,
+               od.id          AS od_id,
+               od.name        AS od_name,
+               od.setmeal_id  AS od_setmeal_id,
+               od.dish_id     AS od_dish_id,
+               od.dish_flavor AS od_dish_flavor,
+               od.number      AS od_number,
+               od.amount      AS od_amount,
+               od.image       AS od_image,
+               od.order_id    AS od_order_id
+        FROM orders AS o
+                 LEFT JOIN order_detail AS od ON o.id = od.order_id
+        WHERE o.id = #{id}
+    </select>
+
+    <update id="update" parameterType="com.sky.entity.Orders">
+        update orders
+        <set>
+            <if test="cancelReason != null and cancelReason!='' ">
+                cancel_reason=#{cancelReason},
+            </if>
+            <if test="rejectionReason != null and rejectionReason!='' ">
+                rejection_reason=#{rejectionReason},
+            </if>
+            <if test="cancelTime != null">
+                cancel_time=#{cancelTime},
+            </if>
+            <if test="payStatus != null">
+                pay_status=#{payStatus},
+            </if>
+            <if test="payMethod != null">
+                pay_method=#{payMethod},
+            </if>
+            <if test="checkoutTime != null">
+                checkout_time=#{checkoutTime},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="deliveryTime != null">
+                delivery_time = #{deliveryTime}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+
+</mapper>

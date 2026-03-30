@@ -15,7 +15,7 @@ spring:
   redis:
     host: ${sky.redis.host}
     port: ${sky.redis.port}
-#    password: ${sky.redis.password}
+    #    password: ${sky.redis.password}
     database: ${sky.redis.database}
 
 mybatis:
@@ -53,3 +53,10 @@ sky:
   wechat:
     app-id: ${sky.wechat.app-id}
     app-secret: ${sky.wechat.app-secret}
+    mch-id: ${sky.wechat.mch-id}
+    mch-serial-no: ${sky.wechat.mch-serial-no}
+    private-key-file-path: ${sky.wechat.private-key-file-path}
+    api-v3-key: ${sky.wechat.api-v3-key}
+    we-chat-pay-cert-file-path: ${sky.wechat.we-chat-pay-cert-file-path}
+    notify-url: ${sky.wechat.notify-url}
+    refund-notify-url: ${sky.wechat.refund-notify-url}
