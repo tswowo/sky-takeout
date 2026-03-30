@@ -19,4 +19,16 @@
         FROM user
         WHERE openid = #{openid}
     </select>
+    <select id="getById" resultType="com.sky.entity.User">
+        SELECT id,
+               open_id,
+               name,
+               phone,
+               sex,
+               id_number,
+               avatar,
+               create_time
+        FROM user
+        WHERE id = #{id}
+    </select>
 </mapper>
