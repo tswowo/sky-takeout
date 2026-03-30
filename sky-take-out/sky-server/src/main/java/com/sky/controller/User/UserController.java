@@ -55,4 +55,14 @@ public class UserController {
         log.info("生成jwt令牌：{}", token);
         return Result.success(userLoginVO);
     }
+
+    /**
+     * 退出登录
+     */
+    @PostMapping("/logout")
+    @ApiOperation("退出登录")
+    public Result logout() {
+        log.info("用户退出登录:{}", BaseContext.getCurrentId());
+        return Result.success();
+    }
 }
