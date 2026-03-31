@@ -91,7 +91,7 @@ public class Orders implements Serializable {
     private LocalDateTime cancelTime;
 
     //预计送达时间
-    private LocalDateTime estimatedDeliveryTime;//
+    private LocalDateTime estimatedDeliveryTime;
 
     //配送状态  1立即送出  0选择具体时间
     private Integer deliveryStatus;//
