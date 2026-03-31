@@ -32,4 +32,6 @@ public interface OrderService {
     void paySuccess(String outTradeNo);
 
     Result repetition(Long orderId);
+
+    Result cancel(Long id);
 }

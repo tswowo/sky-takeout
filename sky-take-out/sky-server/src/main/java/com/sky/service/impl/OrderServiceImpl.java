@@ -232,4 +232,34 @@ public class OrderServiceImpl implements OrderService {
 
         return Result.success();
     }
+
+    /**
+     * 订单取消
+     *
+     * @param id
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result cancel(Long id) {
+        Long userId = BaseContext.getCurrentId();
+        //校验订单信息
+        Orders orders = orderMapper.getById(id);
+        if (orders == null || !Objects.equals(userId, orders.getUserId()))
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (!Objects.equals(orders.getStatus(), Orders.PENDING_PAYMENT) && !Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+        //如果是待接单，则需要退款
+        if (Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED)) {
+            //按理说这里应该调wx的退款，但是没有商户的小程序，所以只能模拟一下了
+            //some codes....
+
+            //将支付状态改为已退款
+            orders.setPayStatus(Orders.REFUND);
+        }
+        orders.setStatus(Orders.CANCELLED);
+        orders.setCancelReason("用户取消");
+        orders.setCancelTime(LocalDateTime.now());
+        orderMapper.update(orders);
+        return Result.success();
+    }
 }
