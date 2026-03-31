@@ -85,7 +85,7 @@ public class OrderServiceImpl implements OrderService {
      * @param ordersSubmitDTO 订单信息
      */
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public Result<OrderSubmitVO> submit(OrdersSubmitDTO ordersSubmitDTO) {
         Long userId = BaseContext.getCurrentId();
 
