@@ -18,4 +18,17 @@
             #{item.image})
         </foreach>
     </insert>
+    <select id="listByOrderId" resultType="com.sky.entity.OrderDetail">
+        SELECT id,
+               name,
+               order_id,
+               dish_id,
+               setmeal_id,
+               dish_flavor,
+               number,
+               amount,
+               image
+        FROM order_detail
+        WHERE order_id = #{orderId}
+    </select>
 </mapper>

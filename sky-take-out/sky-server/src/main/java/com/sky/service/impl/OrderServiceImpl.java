@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -198,5 +199,37 @@ public class OrderServiceImpl implements OrderService {
                 .build();
 
         orderMapper.update(orders);
+    }
+
+    /**
+     * 再来一单
+     *
+     * @param orderId
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result repetition(Long orderId) {
+        Long userId = BaseContext.getCurrentId();
+        //获取订单信息
+        Orders orders = orderMapper.getById(orderId);
+        List<OrderDetail> orderDetailList = orderDetailMapper.listByOrderId(orderId);
+        //校验订单信息
+        if (orders == null || !Objects.equals(userId, orders.getUserId()))
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (orderDetailList == null || orderDetailList.isEmpty())
+            throw new BaseException(MessageConstant.SHOPPING_CART_IS_NULL);
+        //清空购物车
+        shoppingCartMapper.deleteByUserId(userId);
+        //插入到购物车
+        List<ShoppingCart> shoppingCartList = new ArrayList<>(orderDetailList.size());
+        orderDetailList.forEach(orderDetail -> {
+            ShoppingCart shoppingCart = new ShoppingCart();
+            BeanUtils.copyProperties(orderDetail, shoppingCart);
+            shoppingCart.setUserId(userId);
+            shoppingCartList.add(shoppingCart);
+        });
+        shoppingCartMapper.insertBatch(shoppingCartList);
+
+        return Result.success();
     }
 }
