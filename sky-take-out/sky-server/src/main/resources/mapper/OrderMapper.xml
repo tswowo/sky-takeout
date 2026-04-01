@@ -127,7 +127,10 @@
         FROM orders AS o
         LEFT JOIN order_detail AS od ON o.id = od.order_id
         <where>
-            o.user_id = #{userId}
+            1=1
+            <if test="userId!=null">
+                AND o.user_id = #{userId}
+            </if>
             <if test="status != null and status != ''">
                 AND o.status = #{status}
             </if>
@@ -210,6 +213,16 @@
                tableware_status
         FROM orders
         WHERE id = #{id}
+    </select>
+    <select id="countStatus" resultType="java.lang.Integer">
+        SELECT count(1)
+        FROM orders
+        <where>
+            1=1
+            <if test="status!=null">
+                AND status = #{status}
+            </if>
+        </where>
     </select>
 
     <update id="update" parameterType="com.sky.entity.Orders">

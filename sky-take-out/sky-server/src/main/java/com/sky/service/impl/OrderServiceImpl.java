@@ -3,9 +3,7 @@ package com.sky.service.impl;
 import com.github.pagehelper.Page;
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
-import com.sky.dto.OrdersPageQueryDTO;
-import com.sky.dto.OrdersPaymentDTO;
-import com.sky.dto.OrdersSubmitDTO;
+import com.sky.dto.*;
 import com.sky.entity.*;
 import com.sky.exception.BaseException;
 import com.sky.mapper.*;
@@ -13,6 +11,7 @@ import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
 import com.sky.vo.OrderPaymentVO;
+import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
 import org.springframework.beans.BeanUtils;
@@ -81,7 +80,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 订单提交
+     * 用户订单提交
      *
      * @param ordersSubmitDTO 订单信息
      */
@@ -149,7 +148,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 订单支付
+     * 用户订单支付
      *
      * @param ordersPaymentDTO
      * @return
@@ -173,6 +172,16 @@ public class OrderServiceImpl implements OrderService {
 //
 //        OrderPaymentVO vo = jsonObject.toJavaObject(OrderPaymentVO.class);
 //        vo.setPackageStr(jsonObject.getString("package"));
+
+        //校验参数
+        String orderNumber = ordersPaymentDTO.getOrderNumber();
+        Orders orders = orderMapper.getByNumber(orderNumber);
+        if (orders == null)
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (!Objects.equals(orders.getPayStatus(), Orders.UN_PAID))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+        if (!Objects.equals(orders.getStatus(), Orders.PENDING_PAYMENT))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
 
         //没有商户就就跳过支付(前端:重定向到支付成功)，直接更新状态(后端直接调用paySuccess来实现状态的更新)
         paySuccess(ordersPaymentDTO.getOrderNumber());
@@ -202,7 +211,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 再来一单
+     * 用户再来一单
      *
      * @param orderId
      */
@@ -234,13 +243,13 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
-     * 订单取消
+     * 用户取消订单
      *
      * @param id
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result cancel(Long id) {
+    public Result userCancelOrder(Long id) {
         Long userId = BaseContext.getCurrentId();
         //校验订单信息
         Orders orders = orderMapper.getById(id);
@@ -248,8 +257,164 @@ public class OrderServiceImpl implements OrderService {
             throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
         if (!Objects.equals(orders.getStatus(), Orders.PENDING_PAYMENT) && !Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED))
             throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
-        //如果是待接单，则需要退款
-        if (Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED)) {
+
+        cancelOrder(orders, "用户取消订单");
+        return Result.success();
+    }
+
+    /**
+     * 订单条件查询
+     *
+     * @param ordersPageQuery
+     * @return
+     */
+    @Override
+    public Result<PageResult> conditionSearch(OrdersPageQueryDTO ordersPageQuery) {
+        //校验参数
+        if (ordersPageQuery.getPage() < 1)
+            ordersPageQuery.setPage(1);
+        if (ordersPageQuery.getPageSize() < 1)
+            ordersPageQuery.setPageSize(10);
+        //连表查询 order order_detail ,mybatis自动收集orderDetailList
+        Page<OrderVO> page = orderMapper.pageQuery(ordersPageQuery);
+        //封装结果
+        PageResult pageResult = new PageResult();
+        pageResult.setTotal(page.getTotal());
+        pageResult.setRecords(page.getResult());
+        return Result.success(pageResult);
+    }
+
+    /**
+     * 各个状态的订单数量统计
+     *
+     * @return 订单数量统计 包含带派送、派送中、待接单
+     */
+    @Override
+    public Result<OrderStatisticsVO> statistics() {
+        Integer toBeConfirmedCount = orderMapper.countStatus(Orders.TO_BE_CONFIRMED);
+        Integer confirmedCount = orderMapper.countStatus(Orders.CONFIRMED);
+        Integer deliveryInProgressCount = orderMapper.countStatus(Orders.DELIVERY_IN_PROGRESS);
+        OrderStatisticsVO orderStatisticsVO = new OrderStatisticsVO();
+        orderStatisticsVO.setToBeConfirmed(toBeConfirmedCount);
+        orderStatisticsVO.setConfirmed(confirmedCount);
+        orderStatisticsVO.setDeliveryInProgress(deliveryInProgressCount);
+        return Result.success(orderStatisticsVO);
+    }
+
+    /**
+     * 商家确认接单
+     *
+     * @param ordersConfirmDTO
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result confirm(OrdersConfirmDTO ordersConfirmDTO) {
+        //校验参数
+        Long orderId = ordersConfirmDTO.getId();
+        Orders orders = orderMapper.getById(orderId);
+        if (orders == null)
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (!Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED)
+                || !Objects.equals(orders.getPayStatus(), Orders.PAID))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+        //确认接单
+        orders.setStatus(Orders.CONFIRMED);
+        orderMapper.update(orders);
+        return Result.success();
+    }
+
+    /**
+     * 商家拒绝接单
+     *
+     * @param ordersRejectionDTO
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result rejection(OrdersRejectionDTO ordersRejectionDTO) {
+        //校验参数
+        Long orderId = ordersRejectionDTO.getId();
+        Orders orders = orderMapper.getById(orderId);
+        if (orders == null)
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (!Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+        orders.setStatus(Orders.CANCELLED);
+        orders.setRejectionReason(ordersRejectionDTO.getRejectionReason());
+        orders.setCancelTime(LocalDateTime.now());
+        //退款
+        if (Objects.equals(orders.getPayStatus(), Orders.PAID)) {
+            //some codes...
+            orders.setPayStatus(Orders.REFUND);
+        }
+        orderMapper.update(orders);
+        return Result.success();
+    }
+
+    /**
+     * 商家取消订单
+     *
+     * @param ordersRejectionDTO 商家取消的订单和原因 数据模型
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Result adminCancelOrder(OrdersRejectionDTO ordersRejectionDTO) {
+        //校验订单信息
+        Orders orders = orderMapper.getById(ordersRejectionDTO.getId());
+        if (orders == null)
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (Objects.equals(orders.getStatus(), Orders.CANCELLED))//如果订单已取消
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+
+        cancelOrder(orders, ordersRejectionDTO.getCancelReason());
+        return Result.success();
+    }
+
+    /**
+     * 商家派送订单
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Result delivery(Long id) {
+        Orders orders = orderMapper.getById(id);
+        if (orders == null)
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (!Objects.equals(orders.getStatus(), Orders.CONFIRMED))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+        orders.setStatus(Orders.DELIVERY_IN_PROGRESS);
+        orderMapper.update(orders);
+        return Result.success();
+    }
+
+    /**
+     * 商家完成订单
+     *
+     * @param id
+     * @return
+     */
+    @Override
+    public Result complete(Long id) {
+        Orders orders = orderMapper.getById(id);
+        if (orders == null)
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if (!Objects.equals(orders.getStatus(), Orders.DELIVERY_IN_PROGRESS))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+        orders.setStatus(Orders.COMPLETED);
+        orderMapper.update(orders);
+        return Result.success();
+    }
+
+    /**
+     * 工具方法 取消订单
+     *
+     * @param orders       要取消的订单信息
+     * @param cancelReason 取消原因s
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void cancelOrder(Orders orders, String cancelReason) {
+        //如果是已支付，则需要退款
+        if (Objects.equals(orders.getPayStatus(), Orders.PAID)) {
             //按理说这里应该调wx的退款，但是没有商户的小程序，所以只能模拟一下了
             //some codes....
 
@@ -257,9 +422,8 @@ public class OrderServiceImpl implements OrderService {
             orders.setPayStatus(Orders.REFUND);
         }
         orders.setStatus(Orders.CANCELLED);
-        orders.setCancelReason("用户取消");
+        orders.setCancelReason(cancelReason);
         orders.setCancelTime(LocalDateTime.now());
         orderMapper.update(orders);
-        return Result.success();
     }
 }
