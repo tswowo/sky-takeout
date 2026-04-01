@@ -14,7 +14,7 @@ public interface OrderService {
 
     Result<OrderVO> orderDetail(Long id);
 
-    Result<OrderSubmitVO> submit(OrdersSubmitDTO ordersSubmitDTO);
+    Result<OrderSubmitVO> submit(OrdersSubmitDTO ordersSubmitDTO) throws Exception;
 
     /**
      * 订单支付

@@ -19,3 +19,6 @@
 /sky-take-out/sky-server/src/main/resources/application-dev.yml
 /sky-take-out/sky-server/src/main/resources/application-redis.yml
 /一些乱七八糟的笔记/
+/sky-take-out/sky-server/src/main/resources/application-wechat.yml
+/sky-take-out/sky-server/src/main/resources/application-baidu.yml
+/sky-take-out/sky-server/src/main/resources/application-shop.yml

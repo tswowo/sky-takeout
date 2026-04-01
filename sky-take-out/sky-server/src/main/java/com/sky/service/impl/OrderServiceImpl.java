@@ -10,12 +10,15 @@ import com.sky.mapper.*;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
+import com.sky.utils.DistanceCalculator;
 import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +29,11 @@ import java.util.List;
 import java.util.Objects;
 
 @Service
+@Slf4j
 public class OrderServiceImpl implements OrderService {
 
     @Autowired
-    private UserMapper userMapper;
+    private DistanceCalculator distanceCalculator;
     @Autowired
     private OrderMapper orderMapper;
     @Autowired
@@ -38,6 +42,8 @@ public class OrderServiceImpl implements OrderService {
     private OrderDetailMapper orderDetailMapper;
     @Autowired
     private ShoppingCartMapper shoppingCartMapper;
+    @Value("${sky.shop.max-distance}")
+    private Integer maxDistance;
 
     /**
      * 历史订单查询
@@ -86,11 +92,11 @@ public class OrderServiceImpl implements OrderService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Result<OrderSubmitVO> submit(OrdersSubmitDTO ordersSubmitDTO) {
+    public Result<OrderSubmitVO> submit(OrdersSubmitDTO ordersSubmitDTO) throws Exception {
         Long userId = BaseContext.getCurrentId();
 
         //-校验参数
-        //检验地址
+        //检验地址存在
         Long addressBookId = ordersSubmitDTO.getAddressBookId();
         AddressBook query = new AddressBook();
         query.setUserId(userId);
@@ -99,6 +105,26 @@ public class OrderServiceImpl implements OrderService {
         if (addressBooks == null || addressBooks.isEmpty())
             throw new BaseException(MessageConstant.ADDRESS_BOOK_IS_NULL);
         AddressBook addressBook = addressBooks.get(0);
+        //检验配送范围
+        String address = String.format("%s%s%s%s",
+                addressBook.getProvinceName() != null ? addressBook.getProvinceName() : "",
+                addressBook.getCityName() != null ? addressBook.getCityName() : "",
+                addressBook.getDistrictName() != null ? addressBook.getDistrictName() : "",
+                addressBook.getDetail() != null ? addressBook.getDetail() : "");
+
+        double distance;
+        try {
+            distance = distanceCalculator.calculateDistanceFromShop(address);
+        } catch (Exception e) {
+            log.error("配送范围校验失败,地址：{}", address, e);
+            throw new BaseException("配送范围校验失败，请稍后重试");
+        }
+        if (distance > maxDistance) {
+            log.warn("用户地址超出配送范围，地址：{}, 距离：{} 米", address, distance);
+            throw new BaseException(String.format("地址超出配送范围(当前距离:%d 米,最大配送:%d 米)",
+                    (int) distance, maxDistance));
+        }
+        log.info("用户地址在配送范围内,地址：{}, 距离：{} 米", address, distance);
         //校验购物车
         List<ShoppingCart> shoppingCartList = shoppingCartMapper.listByUserId(userId);
         if (shoppingCartList == null || shoppingCartList.isEmpty())

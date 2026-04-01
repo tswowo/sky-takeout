@@ -40,7 +40,7 @@ public class OrderController {
 
     @ApiOperation("用户下单")
     @PostMapping("/submit")
-    public Result<OrderSubmitVO> submit(@RequestBody OrdersSubmitDTO ordersSubmitDTO) {
+    public Result<OrderSubmitVO> submit(@RequestBody OrdersSubmitDTO ordersSubmitDTO) throws Exception {
         log.info("用户下单:{}", ordersSubmitDTO);
         return orderService.submit(ordersSubmitDTO);
     }
