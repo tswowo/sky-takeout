@@ -224,6 +224,42 @@
             </if>
         </where>
     </select>
+    <select id="getByStatusAndCreateTime" resultType="com.sky.entity.Orders">
+        SELECT id,
+        number,
+        status,
+        user_id,
+        address_book_id,
+        order_time,
+        checkout_time,
+        pay_method,
+        pay_status,
+        amount,
+        remark,
+        user_name,
+        phone,
+        address,
+        consignee,
+        cancel_reason,
+        rejection_reason,
+        cancel_time,
+        estimated_delivery_time,
+        delivery_status,
+        delivery_time,
+        pack_amount,
+        tableware_number,
+        tableware_status
+        FROM orders
+        <where>
+            1=1
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="time != null">
+                AND #{time} > order_time
+            </if>
+        </where>
+    </select>
 
     <update id="update" parameterType="com.sky.entity.Orders">
         update orders
