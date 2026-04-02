@@ -46,4 +46,6 @@ public interface OrderService {
     Result delivery(Long id);
 
     Result complete(Long id);
+
+    Result urge(Long id);
 }

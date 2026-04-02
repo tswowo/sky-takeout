@@ -441,6 +441,30 @@ public class OrderServiceImpl implements OrderService {
     }
 
     /**
+     * 催单
+     * @param id 订单id
+     */
+    @Override
+    public Result urge(Long id) {
+        //校验参数
+        Long userId= BaseContext.getCurrentId();
+        Orders orders = orderMapper.getById(id);
+        if(orders==null||!Objects.equals(orders.getUserId(), userId))
+            throw new BaseException(MessageConstant.ORDER_NOT_FOUND);
+        if(!Objects.equals(orders.getStatus(), Orders.TO_BE_CONFIRMED))
+            throw new BaseException(MessageConstant.ORDER_STATUS_ERROR);
+
+        //通过webSocketServer发送催单消息给所有客户端
+        Map pushMessageMap=new HashMap<String,Object>();
+        pushMessageMap.put("type", OrderRemindConstant.ORDER_URGE_REMIND);
+        pushMessageMap.put("orderId", orders.getId());
+        pushMessageMap.put("content", "订单号:"+orders.getNumber());
+        webSocketServer.sendToAllClient(JSON.toJSONString(pushMessageMap));
+
+        return Result.success();
+    }
+
+    /**
      * 工具方法 取消订单
      *
      * @param orders       要取消的订单信息

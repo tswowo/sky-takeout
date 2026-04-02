@@ -69,4 +69,11 @@ public class OrderController {
         return orderService.userCancelOrder(id);
     }
 
+    @GetMapping("/reminder/{id}")
+    @ApiOperation("催单")
+    public Result urge(@PathVariable Long id) {
+        log.info("催单:{}", id);
+        return orderService.urge(id);
+    }
+
 }
