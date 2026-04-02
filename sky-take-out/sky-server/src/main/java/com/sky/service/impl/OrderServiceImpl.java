@@ -1,7 +1,9 @@
 package com.sky.service.impl;
 
+import com.alibaba.fastjson.JSON;
 import com.github.pagehelper.Page;
 import com.sky.constant.MessageConstant;
+import com.sky.constant.OrderRemindConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.*;
 import com.sky.entity.*;
@@ -15,6 +17,7 @@ import com.sky.vo.OrderPaymentVO;
 import com.sky.vo.OrderStatisticsVO;
 import com.sky.vo.OrderSubmitVO;
 import com.sky.vo.OrderVO;
+import com.sky.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,9 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -42,6 +43,8 @@ public class OrderServiceImpl implements OrderService {
     private OrderDetailMapper orderDetailMapper;
     @Autowired
     private ShoppingCartMapper shoppingCartMapper;
+    @Autowired
+    private WebSocketServer webSocketServer;
     @Value("${sky.shop.max-distance}")
     private Integer maxDistance;
 
@@ -211,6 +214,12 @@ public class OrderServiceImpl implements OrderService {
 
         //没有商户就就跳过支付(前端:重定向到支付成功)，直接更新状态(后端直接调用paySuccess来实现状态的更新)
         paySuccess(ordersPaymentDTO.getOrderNumber());
+        //向商户端发送来单提醒
+        Map pushMessageMap=new HashMap<String,Object>();
+        pushMessageMap.put("type", OrderRemindConstant.ORDER_NEW_REMIND);
+        pushMessageMap.put("orderId", orders.getId());
+        pushMessageMap.put("content", "订单号:"+ordersPaymentDTO.getOrderNumber());
+        webSocketServer.sendToAllClient(JSON.toJSONString(pushMessageMap));
 
         return new OrderPaymentVO();
     }
