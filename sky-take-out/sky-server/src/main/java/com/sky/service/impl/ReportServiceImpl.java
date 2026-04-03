@@ -216,8 +216,7 @@ public class ReportServiceImpl implements ReportService {
         //查询营业数据
         LocalDate begin = LocalDate.now().minusDays(30);
         LocalDate end = LocalDate.now().minusDays(1);
-        BusinessDataVO businessDataVO = workspaceService.getBusinessData(LocalDateTime.of(begin, LocalTime.MIN)
-                , LocalDateTime.of(begin, LocalTime.MAX));
+
         //写入到excel
         InputStream in = this.getClass().getClassLoader().getResourceAsStream("template/运营数据报表模板.xlsx");
         try {
@@ -225,24 +224,42 @@ public class ReportServiceImpl implements ReportService {
             Sheet sheet = workbook.getSheet("Sheet1");
             //填充时间
             sheet.getRow(1).getCell(1).setCellValue("时间:" + begin + "至" + end);
+
+            //获取30天汇总数据
+            BusinessDataVO businessDataVO = workspaceService.getBusinessData(
+                    LocalDateTime.of(begin, LocalTime.MIN),
+                    LocalDateTime.of(end, LocalTime.MAX)
+            );
+
             //填充概览数据
             sheet.getRow(3).getCell(2).setCellValue(businessDataVO.getTurnover());
             sheet.getRow(3).getCell(4).setCellValue(businessDataVO.getValidOrderCount());
             sheet.getRow(3).getCell(6).setCellValue(businessDataVO.getOrderCompletionRate());
             sheet.getRow(4).getCell(2).setCellValue(businessDataVO.getNewUsers());
             sheet.getRow(4).getCell(4).setCellValue(businessDataVO.getUnitPrice());
+
             //填充明细数据
             for (int i = 0; i < 30; i++) {
                 LocalDate date = begin.plusDays(i);
-                workspaceService.getBusinessData(LocalDateTime.of(date, LocalTime.MIN), LocalDateTime.of(date, LocalTime.MAX));
+                //获取每日数据
+                BusinessDataVO dailyBusinessData = workspaceService.getBusinessData(
+                        LocalDateTime.of(date, LocalTime.MIN),
+                        LocalDateTime.of(date, LocalTime.MAX)
+                );
+
                 Row row = sheet.getRow(7 + i);
                 row.getCell(1).setCellValue(date.toString());
-                row.getCell(2).setCellValue(businessDataVO.getTurnover());
-                row.getCell(3).setCellValue(businessDataVO.getValidOrderCount());
-                row.getCell(4).setCellValue(businessDataVO.getOrderCompletionRate());
-                row.getCell(5).setCellValue(businessDataVO.getNewUsers());
-                row.getCell(6).setCellValue(businessDataVO.getUnitPrice());
+                row.getCell(2).setCellValue(dailyBusinessData.getTurnover());
+                row.getCell(3).setCellValue(dailyBusinessData.getValidOrderCount());
+                row.getCell(4).setCellValue(dailyBusinessData.getOrderCompletionRate());
+                row.getCell(5).setCellValue(dailyBusinessData.getUnitPrice());
+                row.getCell(6).setCellValue(dailyBusinessData.getNewUsers());
             }
+
+            //设置响应头
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment;filename=businessData.xlsx");
+
             //输出到客户端
             ServletOutputStream out = response.getOutputStream();
             workbook.write(out);
@@ -253,9 +270,8 @@ public class ReportServiceImpl implements ReportService {
             workbook.close();
             log.info("导出成功");
         } catch (IOException e) {
-            log.error(e.getMessage());
+            log.error("导出运营数据失败", e);
         }
-
     }
 
 }
