@@ -6,13 +6,23 @@ import com.sky.mapper.OrderMapper;
 import com.sky.mapper.UserMapper;
 import com.sky.result.Result;
 import com.sky.service.ReportService;
+import com.sky.service.WorkspaceService;
 import com.sky.vo.*;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 @Service
@@ -22,6 +32,8 @@ public class ReportServiceImpl implements ReportService {
     private OrderMapper orderMapper;
     @Autowired
     private UserMapper userMapper;
+    @Autowired
+    private WorkspaceService workspaceService;
 
     /**
      * 营业额统计
@@ -44,8 +56,9 @@ public class ReportServiceImpl implements ReportService {
         while (!date.isAfter(end)) {
             dateList.add(date.toString());
 
-            map.put("begin", date);
-            map.put("end", date.plusDays(1));
+            map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
+            map.put("end", LocalDateTime.of(date, LocalTime.MAX));
+
             map.put("status", Orders.COMPLETED);
             Double turnover = orderMapper.sumByMap(map);
             turnover = turnover != null ? turnover : 0L;
@@ -84,8 +97,8 @@ public class ReportServiceImpl implements ReportService {
         while (!date.isAfter(end)) {
             dateList.add(date.toString());
 
-            map.put("begin", date);
-            map.put("end", date.plusDays(1));
+            map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
+            map.put("end", LocalDateTime.of(date, LocalTime.MAX));
             Integer newUser = userMapper.countByMap(map);
             newUserList.add(newUser.toString());
 
@@ -128,8 +141,9 @@ public class ReportServiceImpl implements ReportService {
         int validTotalOrderCount = 0;
         while (!date.isAfter(end)) {
             dateList.add(date.toString());
-            map.put("begin", date);
-            map.put("end", date.plusDays(1));
+
+            map.put("begin", LocalDateTime.of(date, LocalTime.MIN));
+            map.put("end", LocalDateTime.of(date, LocalTime.MAX));
 
             map.put("status", null);
             Integer orderCount = orderMapper.countByMap(map);
@@ -174,8 +188,8 @@ public class ReportServiceImpl implements ReportService {
         List<String> nameList = new ArrayList<>();
         List<String> numberList = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
-        map.put("begin", begin);
-        map.put("end", end);
+        map.put("begin", LocalDateTime.of(begin, LocalTime.MIN));
+        map.put("end", LocalDateTime.of(end, LocalTime.MAX));
         map.put("status", Orders.COMPLETED);
         List<GoodsSalesDTO> list = orderMapper.getSalesTop10(map);
         for (GoodsSalesDTO dto : list) {
@@ -200,10 +214,48 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public void exportBussinessData(HttpServletResponse response) {
         //查询营业数据
-//        List<BusinessDataVO>
+        LocalDate begin = LocalDate.now().minusDays(30);
+        LocalDate end = LocalDate.now().minusDays(1);
+        BusinessDataVO businessDataVO = workspaceService.getBusinessData(LocalDateTime.of(begin, LocalTime.MIN)
+                , LocalDateTime.of(begin, LocalTime.MAX));
         //写入到excel
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream("template/运营数据报表模板.xlsx");
+        try {
+            Workbook workbook = new XSSFWorkbook(in);
+            Sheet sheet = workbook.getSheet("Sheet1");
+            //填充时间
+            sheet.getRow(1).getCell(1).setCellValue("时间:" + begin + "至" + end);
+            //填充概览数据
+            sheet.getRow(3).getCell(2).setCellValue(businessDataVO.getTurnover());
+            sheet.getRow(3).getCell(4).setCellValue(businessDataVO.getValidOrderCount());
+            sheet.getRow(3).getCell(6).setCellValue(businessDataVO.getOrderCompletionRate());
+            sheet.getRow(4).getCell(2).setCellValue(businessDataVO.getNewUsers());
+            sheet.getRow(4).getCell(4).setCellValue(businessDataVO.getUnitPrice());
+            //填充明细数据
+            for (int i = 0; i < 30; i++) {
+                LocalDate date = begin.plusDays(i);
+                workspaceService.getBusinessData(LocalDateTime.of(date, LocalTime.MIN), LocalDateTime.of(date, LocalTime.MAX));
+                Row row = sheet.getRow(7 + i);
+                row.getCell(1).setCellValue(date.toString());
+                row.getCell(2).setCellValue(businessDataVO.getTurnover());
+                row.getCell(3).setCellValue(businessDataVO.getValidOrderCount());
+                row.getCell(4).setCellValue(businessDataVO.getOrderCompletionRate());
+                row.getCell(5).setCellValue(businessDataVO.getNewUsers());
+                row.getCell(6).setCellValue(businessDataVO.getUnitPrice());
+            }
+            //输出到客户端
+            ServletOutputStream out = response.getOutputStream();
+            workbook.write(out);
+            out.flush();
 
-        //输出到客户端
+            //关闭资源
+            out.close();
+            workbook.close();
+            log.info("导出成功");
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+
     }
 
 }
