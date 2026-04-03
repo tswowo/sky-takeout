@@ -112,6 +112,7 @@ public class WorkspaceServiceImpl implements WorkspaceService {
         map.put("status", Orders.CANCELLED);
         Integer cancelledOrders = orderMapper.countByMap(map);
 
+        
         //全部订单
         map.put("status", null);
         Integer allOrders = orderMapper.countByMap(map);
