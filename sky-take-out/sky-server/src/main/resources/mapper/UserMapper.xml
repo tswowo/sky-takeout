@@ -31,4 +31,17 @@
         FROM user
         WHERE id = #{id}
     </select>
+    <select id="countByMap" resultType="java.lang.Integer">
+        SELECT COUNT(id)
+        FROM user
+        <where>
+            1=1
+            <if test="begin != null">
+                AND create_time >= #{begin}
+            </if>
+            <if test="end != null">
+                AND #{end} >= create_time
+            </if>
+        </where>
+    </select>
 </mapper>

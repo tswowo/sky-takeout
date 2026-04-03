@@ -2,18 +2,20 @@ package com.sky.service.impl;
 
 import com.sky.dto.GoodsSalesDTO;
 import com.sky.entity.Orders;
-import com.sky.mapper.ReportMapper;
+import com.sky.mapper.DishMapper;
+import com.sky.mapper.OrderMapper;
+import com.sky.mapper.SetmealMapper;
+import com.sky.mapper.UserMapper;
 import com.sky.result.Result;
 import com.sky.service.ReportService;
-import com.sky.vo.OrderReportVO;
-import com.sky.vo.SalesTop10ReportVO;
-import com.sky.vo.TurnoverReportVO;
-import com.sky.vo.UserReportVO;
+import com.sky.vo.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletResponse;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 
@@ -21,7 +23,9 @@ import java.util.*;
 @Slf4j
 public class ReportServiceImpl implements ReportService {
     @Autowired
-    private ReportMapper reportMapper;
+    private OrderMapper orderMapper;
+    @Autowired
+    private UserMapper userMapper;
 
     /**
      * 营业额统计
@@ -31,20 +35,23 @@ public class ReportServiceImpl implements ReportService {
      * @return Result<TurnoverReportVO> 查询日期范围内每天的营业额
      */
     @Override
-    public Result<TurnoverReportVO> turnoverStatistics(String begin, String end) {
+    public Result<TurnoverReportVO> turnoverStatistics(LocalDate begin, LocalDate end) {
         if (begin == null || end == null)
             return Result.error("开始日期或结束日期不能为空");
-        LocalDate beginDate = LocalDate.parse(begin);
-        LocalDate endDate = LocalDate.parse(end);
-        if (beginDate.isAfter(endDate))
+        if (begin.isAfter(end))
             return Result.error("开始日期不能大于结束日期");
 
         List<String> dateList = new ArrayList<>();
         List<String> turnoverList = new ArrayList<>();
-        LocalDate date = beginDate;
-        while (!date.isAfter(endDate)) {
+        Map<String, Object> map = new HashMap<>();
+        LocalDate date = begin;
+        while (!date.isAfter(end)) {
             dateList.add(date.toString());
-            Long turnover = reportMapper.getTurnover(date);
+
+            map.put("begin", date);
+            map.put("end", date.plusDays(1));
+            map.put("status", Orders.COMPLETED);
+            Double turnover = orderMapper.sumByMap(map);
             turnover = turnover != null ? turnover : 0L;
 
             turnoverList.add(turnover.toString());
@@ -66,31 +73,29 @@ public class ReportServiceImpl implements ReportService {
      * @return Result<UserReportVO> 查询日期范围内每天的用户新增数和当天的总用户数
      */
     @Override
-    public Result<UserReportVO> userStatistics(String begin, String end) {
+    public Result<UserReportVO> userStatistics(LocalDate begin, LocalDate end) {
         if (begin == null || end == null)
             return Result.error("开始日期或结束日期不能为空");
-        LocalDate beginDate = LocalDate.parse(begin);
-        LocalDate endDate = LocalDate.parse(end);
-        if (beginDate.isAfter(endDate))
+        if (begin.isAfter(end))
             return Result.error("开始日期不能大于结束日期");
 
         List<String> dateList = new ArrayList<>();
         List<String> newUserList = new ArrayList<>();
         List<String> totalUserList = new ArrayList<>();
 
-        LocalDate date = beginDate;
-        long totalUser = 0;
-        while (!date.isAfter(endDate)) {
+        LocalDate date = begin;
+        HashMap<String, Object> map = new HashMap<>();
+        while (!date.isAfter(end)) {
             dateList.add(date.toString());
 
-            Long newUser = reportMapper.getNewUserCount(date);
-            newUser = newUser != null ? newUser : 0L;
+            map.put("begin", date);
+            map.put("end", date.plusDays(1));
+            Integer newUser = userMapper.countByMap(map);
             newUserList.add(newUser.toString());
 
-            if (Objects.equals(date, beginDate))
-                totalUser = reportMapper.getTotalUserCount(date);
-            else totalUser += newUser;
-            totalUserList.add(Long.toString(totalUser));
+            map.put("begin", null);
+            Integer totalUser = userMapper.countByMap(map);
+            totalUserList.add(totalUser.toString());
 
             date = date.plusDays(1);
         }
@@ -112,33 +117,31 @@ public class ReportServiceImpl implements ReportService {
      * @return Result<OrderStatisticsVO> 查询日期范围内每天的订单完成率 订单总数 订单列表 有效订单数 有效订单列表
      */
     @Override
-    public Result<OrderReportVO> ordersStatistics(String begin, String end) {
+    public Result<OrderReportVO> ordersStatistics(LocalDate begin, LocalDate end) {
         if (begin == null || end == null)
             return Result.error("开始日期或结束日期不能为空");
-        LocalDate beginDate = LocalDate.parse(begin);
-        LocalDate endDate = LocalDate.parse(end);
-        if (beginDate.isAfter(endDate))
+        if (begin.isAfter(end))
             return Result.error("开始日期不能大于结束日期");
 
         List<String> dateList = new ArrayList<>();
         List<String> orderCountList = new ArrayList<>();
         List<String> validOrderCountList = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
-        LocalDate date = beginDate;
+        LocalDate date = begin;
         int totalOrderCount = 0;
         int validTotalOrderCount = 0;
-        while (!date.isAfter(endDate)) {
+        while (!date.isAfter(end)) {
             dateList.add(date.toString());
-            map.put("date", date);
+            map.put("begin", date);
+            map.put("end", date.plusDays(1));
+
             map.put("status", null);
-            Long orderCount = reportMapper.getOrderCountByMap(map);
-            orderCount = orderCount != null ? orderCount : 0L;
+            Integer orderCount = orderMapper.countByMap(map);
             orderCountList.add(orderCount.toString());
             totalOrderCount += orderCount;
 
             map.put("status", Orders.COMPLETED);
-            Long validOrderCount = reportMapper.getOrderCountByMap(map);
-            validOrderCount = validOrderCount != null ? validOrderCount : 0L;
+            Integer validOrderCount = orderMapper.countByMap(map);
             validOrderCountList.add(validOrderCount.toString());
             validTotalOrderCount += validOrderCount;
 
@@ -166,21 +169,19 @@ public class ReportServiceImpl implements ReportService {
      * @return Result<SalesTop10ReportVO> 商品名称列表 销量列表
      */
     @Override
-    public Result<SalesTop10ReportVO> getSalesTop10(String begin, String end) {
+    public Result<SalesTop10ReportVO> getSalesTop10(LocalDate begin, LocalDate end) {
         if (begin == null || end == null)
             return Result.error("开始日期或结束日期不能为空");
-        LocalDate beginDate = LocalDate.parse(begin);
-        LocalDate endDate = LocalDate.parse(end);
-        if (beginDate.isAfter(endDate))
+        if (begin.isAfter(end))
             return Result.error("开始日期不能大于结束日期");
 
         List<String> nameList = new ArrayList<>();
         List<String> numberList = new ArrayList<>();
         Map<String, Object> map = new HashMap<>();
-        map.put("begin", beginDate.atStartOfDay());
-        map.put("end", endDate.atTime(LocalTime.MAX));
+        map.put("begin", begin);
+        map.put("end", end);
         map.put("status", Orders.COMPLETED);
-        List<GoodsSalesDTO> list = reportMapper.getSalesTop10(map);
+        List<GoodsSalesDTO> list = orderMapper.getSalesTop10(map);
         for (GoodsSalesDTO dto : list) {
             nameList.add(dto.getName());
             numberList.add(dto.getNumber().toString());
@@ -193,6 +194,20 @@ public class ReportServiceImpl implements ReportService {
         log.info("销量排名结果：{}", salesTop10ReportVO);
 
         return Result.success(salesTop10ReportVO);
+    }
+
+    /**
+     * 导出营业数据
+     *
+     * @param response
+     */
+    @Override
+    public void exportBussinessData(HttpServletResponse response) {
+        //查询营业数据
+//        List<BusinessDataVO>
+        //写入到excel
+
+        //输出到客户端
     }
 
 }

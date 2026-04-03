@@ -23,14 +23,18 @@
 
     <!--插入菜品-->
     <insert id="insertDish" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO dish (name,category_id,price,image,description,status,create_time,update_time,create_user,update_user)
-        VALUES (#{name},#{categoryId},#{price},#{image},#{description},#{status},NOW(),NOW(),#{createUser},#{updateUser})
+        INSERT INTO dish (name, category_id, price, image, description, status, create_time, update_time, create_user,
+                          update_user)
+        VALUES (#{name}, #{categoryId}, #{price}, #{image}, #{description}, #{status}, NOW(), NOW(), #{createUser},
+                #{updateUser})
     </insert>
     <!--菜品起售、停售-->
     <update id="updateDishStatus">
         UPDATE
-        dish
-        SET status = #{status},update_time = NOW(),update_user = #{updateUser}
+            dish
+        SET status      = #{status},
+            update_time = NOW(),
+            update_user = #{updateUser}
         WHERE id = #{id}
     </update>
     <!--修改菜品-->
@@ -57,39 +61,64 @@
     </delete>
     <!--菜品分页查询-->
     <select id="pageQuery" resultType="com.sky.vo.DishVO">
-        SELECT dish.id,dish.name,dish.category_id,dish.price,dish.image,dish.description,dish.status,dish.update_time, category.name AS category_name
+        SELECT dish.id,dish.name,dish.category_id,dish.price,dish.image,dish.description,dish.status,dish.update_time,
+        category.name AS category_name
         FROM dish
         LEFT JOIN category ON dish.category_id = category.id
         <where>
             <if test="categoryId!=null">
                 dish.category_id = #{categoryId}
             </if>
-        <if test="name!=null">
-            AND dish.name LIKE '%${name}%'
-        </if>
-        <if test="status!=null">
-            AND dish.status = #{status}
-        </if>
+            <if test="name!=null">
+                AND dish.name LIKE '%${name}%'
+            </if>
+            <if test="status!=null">
+                AND dish.status = #{status}
+            </if>
         </where>
     </select>
     <!--根据分类id查询菜品-->
     <select id="listDish" resultType="com.sky.vo.DishVO">
-        SELECT category_id,create_time,create_user,description,id,image,name,price,status,update_time,update_user
+        SELECT category_id,
+               create_time,
+               create_user,
+               description,
+               id,
+               image,
+               name,
+               price,
+               status,
+               update_time,
+               update_user
         FROM dish
         WHERE dish.category_id = #{categoryId}
     </select>
     <!--根据id查询菜品VO-->
     <select id="getDishVOById" resultType="com.sky.vo.DishVO">
-        SELECT
-            dish.id,dish.name,dish.category_id,dish.price,dish.image,dish.description,dish.status,dish.update_time,category.name AS category_name
+        SELECT dish.id,
+               dish.name,
+               dish.category_id,
+               dish.price,
+               dish.image,
+               dish.description,
+               dish.status,
+               dish.update_time,
+               category.name AS category_name
         FROM dish
-        LEFT JOIN category ON dish.category_id = category.id
+                 LEFT JOIN category ON dish.category_id = category.id
         WHERE dish.id = #{id}
     </select>
     <!--根据id查询菜品-->
     <select id="getDishById" resultType="com.sky.entity.Dish">
-        SELECT
-            id,name,category_id,price,image,description,status,create_user,create_user
+        SELECT id,
+               name,
+               category_id,
+               price,
+               image,
+               description,
+               status,
+               create_user,
+               create_user
         FROM dish
         WHERE id = #{id}
     </select>
@@ -103,16 +132,35 @@
     </select>
     <!--通过分类查询菜品及其关联的口味-->
     <select id="listDishWithFlavors" resultMap="DishVOResultMap">
-        SELECT
-            d.id, d.name, d.category_id, d.price, d.image, d.status, d.description, d.create_time, d.update_time,
-            df.id AS flavor_id,
-            df.dish_id AS flavor_dish_id,
-            df.name AS flavor_name,
-            df.value AS flavor_value
+        SELECT d.id,
+               d.name,
+               d.category_id,
+               d.price,
+               d.image,
+               d.status,
+               d.description,
+               d.create_time,
+               d.update_time,
+               df.id      AS flavor_id,
+               df.dish_id AS flavor_dish_id,
+               df.name    AS flavor_name,
+               df.value   AS flavor_value
         FROM dish d
                  LEFT JOIN dish_flavor df ON d.id = df.dish_id
-        WHERE d.category_id = #{categoryId} AND d.status = 1
+        WHERE d.category_id = #{categoryId}
+          AND d.status = 1
         ORDER BY d.create_time DESC
     </select>
-
+    <!--根据条件统计菜品数量-->
+    <select id="countByMap" resultType="java.lang.Integer">
+        select count(id) from dish
+        <where>
+            <if test="status != null">
+                and status = #{status}
+            </if>
+            <if test="categoryId != null">
+                and category_id = #{categoryId}
+            </if>
+        </where>
+    </select>
 </mapper>
